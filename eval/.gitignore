@@ -1,0 +1,6 @@
+mysql/mysql-root-password.env
+mysql/mysql-user.env
+data/mysql/*
+!data/mysql/.gitkeep
+test/app/__pycache__/
+test/.pytest_cache/

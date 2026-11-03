@@ -1,0 +1,7 @@
+/eval-submission.tar.gz
+/eval/mysql/mysql-root-password.env
+/eval/mysql/mysql-user.env
+/eval/data/mysql/*
+!/eval/data/mysql/.gitkeep
+/eval/test/app/__pycache__/
+/eval/test/.pytest_cache/
