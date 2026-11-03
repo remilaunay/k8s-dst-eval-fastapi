@@ -73,6 +73,7 @@ verify: namespace render ## Vérifie la syntaxe et les schémas des manifestes K
 	python3 -m compileall -q test/app/main.py
 	python3 -c 'from pathlib import Path; compile(Path("render-manifests.py").read_text(), "render-manifests.py", "exec")'
 
-archive: render ## Crée ../eval-submission.tar.gz sans données MySQL ni fichiers de Secrets locaux
-	rm -f ../eval-submission.tar.gz
-	tar --exclude='eval/data/mysql/*' --exclude='eval/mysql/*.env' --exclude='eval/__pycache__' --exclude='eval/test/app/__pycache__' -czf ../eval-submission.tar.gz -C .. eval
+archive: render ## Crée eval-submission.tar.gz sans données MySQL ni fichiers de Secrets locaux
+	rm -f /tmp/eval-submission.tar.gz eval-submission.tar.gz
+	tar --transform='s|^\./|eval/|' --exclude='./.git' --exclude='./README_exam.md' --exclude='./eval-submission.tar.gz' --exclude='./data/mysql/*' --exclude='./mysql/*.env' --exclude='./__pycache__' --exclude='./test/app/__pycache__' -czf /tmp/eval-submission.tar.gz -C . .
+	mv /tmp/eval-submission.tar.gz eval-submission.tar.gz

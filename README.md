@@ -8,11 +8,7 @@ Ce dossier contient le rendu de l’examen : un StatefulSet MySQL 8.4 avec stock
 - Docker Engine démarré et un compte Docker Hub public nommé `remilaunay`.
 - `make`, `curl` et Python 3.
 
-Les manifestes de stockage et de montage de code utilisent les chemins de cette VM : `/home/ubuntu/eval/eval/data/mysql` et `/home/ubuntu/eval/eval/test/app`. Si le dossier est déplacé, modifie ces deux chemins absolus dans les manifestes correspondants.
-
-## Préparation de la VM
-
-Le cache de paquets UV occupait 3,0 Gio ; il a été vidé avant le déploiement. Pour ne laisser tourner que les workloads nécessaires à l’examen, les Deployments, StatefulSets et ReplicaSets applicatifs des namespaces `airflow`, `datascientest`, `default` et `sales` ont été mis à zéro. Leurs manifestes et PVC sont conservés ; aucun volume de données n’a été supprimé. Les composants système K3s, MySQL et FastAPI restent actifs.
+Les `hostPath` Kubernetes exigent un chemin absolu présent sur le nœud. Les modèles versionnés n’en fixent aucun : `make render` génère les deux manifestes depuis l’emplacement courant du dossier `eval`. Si le projet et le nœud Kubernetes ne partagent pas le même chemin, passe `MYSQL_DATA_PATH` et `FASTAPI_APP_PATH` pour indiquer les chemins vus par le nœud.
 
 ## Configuration locale
 
@@ -20,9 +16,12 @@ Depuis le dossier `eval` :
 
 ```bash
 make prepare
+make render
 ```
 
 Remplace les valeurs `replace-with-...` dans `mysql/mysql-root-password.env` et `mysql/mysql-user.env`. Ces deux fichiers contiennent des secrets locaux, sont ignorés par Git et ne sont pas inclus dans l’archive de rendu. Les fichiers `.env.example` suivis par Git ne contiennent que des exemples.
+
+Si le chemin du projet vu par le nœud Kubernetes diffère, fournis les deux chemins absolus au rendu : `MYSQL_DATA_PATH=/chemin/noeud/data/mysql FASTAPI_APP_PATH=/chemin/noeud/test/app make render`.
 
 Connecte Docker au compte avant la publication :
 
@@ -59,8 +58,6 @@ docker login
    ```
 
    Le Deployment utilise l’image publiée, les variables du Secret `mysql-user` et n’active pas `--reload`. Le service NodePort expose l’application sur le port 30000 du nœud.
-
-   **Conflit de port rencontré sur cette VM :** `default/monservicenodeport` utilisait déjà le NodePort 30000. Son NodePort a été déplacé à 32000 pour respecter la consigne ; le service reste défini dans le cluster.
 
 ## Vérification et utilisation
 
@@ -101,18 +98,19 @@ eval/
 │   ├── deployment.yaml         # Deployment de 3 replicas
 │   └── service.yaml            # NodePort 30000
 ├── mysql/
-│   ├── mysql-local-data-folder-pv.yaml
+│   ├── mysql-local-data-folder-pv.yaml.in  # Modèle rendu par make render
 │   ├── mysql-service.yaml      # ClusterIP 10.43.0.42:3307 et service headless
 │   ├── mysql-statefulset.yaml  # MySQL 8.4, 1 replica, PVC de 2 Gio
 │   └── *.env.example           # Modèles locaux des deux Secrets
 ├── test/
 │   ├── app/main.py             # API FastAPI reliée à MySQL
 │   ├── Dockerfile
-│   ├── fastapi-pod.yaml        # Pod de test avec --reload
+│   ├── fastapi-pod.yaml.in     # Modèle du pod de test
 │   └── requirements.txt
 ├── namespace.yaml
+├── render-manifests.py         # Génère les fichiers YAML hostPath
 ├── Makefile
 └── README.md
 ```
 
-Le rendu final demandé peut être produit avec `make archive`. L’archive `../eval-submission.tar.gz` exclut les données MySQL et les deux fichiers locaux de Secrets.
+`make render` génère `mysql/mysql-local-data-folder-pv.yaml` et `test/fastapi-pod.yaml`. Le rendu final peut être produit avec `make archive`; le fichier `eval-submission.tar.gz` exclut les données MySQL, les deux fichiers locaux de Secrets et le document de consignes.
