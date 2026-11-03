@@ -2,8 +2,10 @@ SHELL := /bin/bash
 .DEFAULT_GOAL := help
 
 IMAGE := docker.io/remilaunay/k8s-dst-eval-fastapi:latest
+MYSQL_DATA_PATH ?= $(abspath data/mysql)
+FASTAPI_APP_PATH ?= $(abspath test/app)
 
-.PHONY: help prepare namespace secrets pv mysql build push test-pod test-logs remove-test deploy verify archive
+.PHONY: help prepare render namespace secrets pv mysql build push test-pod test-logs remove-test deploy verify archive
 
 help: ## Affiche les commandes disponibles
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "%-14s %s\n", $$1, $$2}'
@@ -13,6 +15,9 @@ prepare: ## Crée les répertoires et copie les modèles de Secrets locaux
 	@test -f mysql/mysql-root-password.env || cp mysql/mysql-root-password.env.example mysql/mysql-root-password.env
 	@test -f mysql/mysql-user.env || cp mysql/mysql-user.env.example mysql/mysql-user.env
 	@echo "Modèles copiés. Remplace les valeurs replace-with dans mysql/*.env avant make secrets."
+
+render: ## Génère les manifestes hostPath depuis l’emplacement du projet
+	MYSQL_DATA_PATH="$(MYSQL_DATA_PATH)" FASTAPI_APP_PATH="$(FASTAPI_APP_PATH)" python3 render-manifests.py
 
 namespace: ## Crée ou met à jour le namespace eval
 	kubectl apply -f namespace.yaml
@@ -24,7 +29,7 @@ secrets: namespace ## Crée les deux Secrets Kubernetes depuis les fichiers loca
 	kubectl -n eval create secret generic mysql-root-password --from-env-file=mysql/mysql-root-password.env --dry-run=client -o yaml | kubectl apply -f -
 	kubectl -n eval create secret generic mysql-user --from-env-file=mysql/mysql-user.env --dry-run=client -o yaml | kubectl apply -f -
 
-pv: namespace ## Crée le volume persistant statique MySQL
+pv: namespace render ## Crée le volume persistant statique MySQL
 	@mkdir -p data/mysql
 	kubectl apply -f mysql/mysql-local-data-folder-pv.yaml
 
@@ -40,7 +45,7 @@ build: ## Construit et tague l'image FastAPI
 push: build ## Publie l'image FastAPI sur Docker Hub (docker login préalable)
 	docker push $(IMAGE)
 
-test-pod: mysql push ## Lance le pod FastAPI de test avec --reload et le montage hostPath
+test-pod: mysql push render ## Lance le pod FastAPI de test avec --reload et le montage hostPath
 	kubectl apply -f test/fastapi-pod.yaml
 	kubectl -n eval wait --for=condition=Ready pod/fastapi --timeout=5m
 
@@ -53,10 +58,11 @@ remove-test: ## Supprime uniquement le pod de test FastAPI
 deploy: mysql push ## Déploie les 3 replicas FastAPI et le service NodePort 30000
 	kubectl apply -f fastapi/deployment.yaml
 	kubectl apply -f fastapi/service.yaml
+	kubectl -n eval rollout restart deployment/fastapi
 	kubectl -n eval rollout status deployment/fastapi --timeout=5m
 	kubectl -n eval get deployment,pods,service -l app=fastapi -o wide
 
-verify: namespace ## Vérifie la syntaxe et les schémas des manifestes Kubernetes côté API
+verify: namespace render ## Vérifie la syntaxe et les schémas des manifestes Kubernetes côté API
 	kubectl apply --dry-run=server -f namespace.yaml
 	kubectl apply --dry-run=server -f mysql/mysql-local-data-folder-pv.yaml
 	kubectl apply --dry-run=server -f mysql/mysql-service.yaml
@@ -65,7 +71,8 @@ verify: namespace ## Vérifie la syntaxe et les schémas des manifestes Kubernet
 	kubectl apply --dry-run=server -f fastapi/deployment.yaml
 	kubectl apply --dry-run=server -f fastapi/service.yaml
 	python3 -m compileall -q test/app/main.py
+	python3 -m py_compile render-manifests.py
 
-archive: ## Crée ../eval-submission.tar.gz sans données MySQL ni fichiers de Secrets locaux
+archive: render ## Crée ../eval-submission.tar.gz sans données MySQL ni fichiers de Secrets locaux
 	rm -f ../eval-submission.tar.gz
 	tar --exclude='eval/data/mysql/*' --exclude='eval/mysql/*.env' --exclude='eval/test/app/__pycache__' -czf ../eval-submission.tar.gz -C .. eval

@@ -13,5 +13,5 @@ spec:
     namespace: eval
     name: mysql-data-mysql-0
   hostPath:
-    path: /home/ubuntu/eval/eval/data/mysql
+    path: "__MYSQL_DATA_PATH__"
     type: Directory

@@ -1,6 +1,8 @@
 /eval-submission.tar.gz
 /eval/mysql/mysql-root-password.env
 /eval/mysql/mysql-user.env
+/eval/mysql/mysql-local-data-folder-pv.yaml
+/eval/test/fastapi-pod.yaml
 /eval/data/mysql/*
 !/eval/data/mysql/.gitkeep
 /eval/test/app/__pycache__/

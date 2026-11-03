@@ -34,7 +34,6 @@ mysql_user = required_env("MYSQL_USER")
 mysql_password = required_env("MYSQL_PASSWORD")
 mysql_database = required_env("MYSQL_DATABASE")
 
-# Log connection details without exposing the password in pod logs.
 print(
     "MySQL configuration loaded: "
     f"host={mysql_host}, port={mysql_port}, database={mysql_database}, "
@@ -75,7 +74,6 @@ _column_types = {
 
 
 def parse_column_type(type_spec: str):
-    """Parse the supported SQL types without evaluating request-provided code."""
     match = _type_spec.fullmatch(type_spec)
     if match is None:
         raise ValueError(f"Unsupported column type: {type_spec}")

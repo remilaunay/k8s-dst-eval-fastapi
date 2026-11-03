@@ -42,5 +42,5 @@ spec:
   volumes:
     - name: app-source
       hostPath:
-        path: /home/ubuntu/eval/eval/test/app
+        path: "__FASTAPI_APP_PATH__"
         type: Directory
