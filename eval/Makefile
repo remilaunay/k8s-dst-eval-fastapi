@@ -56,7 +56,7 @@ deploy: mysql push ## Déploie les 3 replicas FastAPI et le service NodePort 300
 	kubectl -n eval rollout status deployment/fastapi --timeout=5m
 	kubectl -n eval get deployment,pods,service -l app=fastapi -o wide
 
-verify: ## Vérifie la syntaxe et les schémas des manifestes Kubernetes côté API
+verify: namespace ## Vérifie la syntaxe et les schémas des manifestes Kubernetes côté API
 	kubectl apply --dry-run=server -f namespace.yaml
 	kubectl apply --dry-run=server -f mysql/mysql-local-data-folder-pv.yaml
 	kubectl apply --dry-run=server -f mysql/mysql-service.yaml
