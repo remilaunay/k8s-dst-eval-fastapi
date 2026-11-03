@@ -4,7 +4,7 @@ Ce dossier contient le rendu de l’examen : un StatefulSet MySQL 8.4 avec stock
 
 ## Prérequis
 
-- Un cluster Kubernetes accessible avec `kubectl`, un StorageClass `local-path` et le port NodePort 30000 disponible.
+- Un cluster Kubernetes accessible avec `kubectl`, un StorageClass `local-path` et un NodePort libre.
 - Docker Engine démarré et un compte Docker Hub public nommé `remilaunay`.
 - `make`, `curl` et Python 3.
 
@@ -54,7 +54,9 @@ docker login
    make deploy
    ```
 
-   Le Deployment utilise l’image publiée, les variables du Secret `mysql-user` et n’active pas `--reload`. Le service NodePort expose l’application sur le port 30000 du nœud.
+   Le Deployment utilise l’image publiée, les variables du Secret `mysql-user` et n’active pas `--reload`. Le service NodePort expose l’application sur le port 30002 du nœud dans cette VM.
+
+   **Conflit de port rencontré :** le NodePort 30000 est déjà utilisé par le service actif `default/monservicenodeport`. Pour préserver ce service, ce rendu utilise 30002. Si l’évaluateur exige strictement le NodePort 30000, il faudra d’abord libérer ce port dans le cluster puis remettre `nodePort: 30000` dans `fastapi/service.yaml`.
 
 ## Vérification et utilisation
 
@@ -64,14 +66,14 @@ Vérifie les ressources, les logs et la disponibilité de l’API :
 make verify
 kubectl -n eval get all,pvc
 kubectl -n eval logs deployment/fastapi
-curl http://<IP_DU_NOEUD>:30000/health
-curl http://<IP_DU_NOEUD>:30000/tables
+curl http://<IP_DU_NOEUD>:30002/health
+curl http://<IP_DU_NOEUD>:30002/tables
 ```
 
 L’endpoint `PUT /table` crée une table. Exemple :
 
 ```bash
-curl -X PUT http://<IP_DU_NOEUD>:30000/table \
+curl -X PUT http://<IP_DU_NOEUD>:30002/table \
   -H 'Content-Type: application/json' \
   -d '{"table_name":"exam_result","columns":{"id":"Integer","label":"String(100)"}}'
 ```
@@ -93,7 +95,7 @@ eval/
 ├── data/mysql/                 # Répertoire hôte du PV (données non archivées)
 ├── fastapi/
 │   ├── deployment.yaml         # Deployment de 3 replicas
-│   └── service.yaml            # NodePort 30000
+│   └── service.yaml            # NodePort 30002 sur cette VM (30000 est occupé)
 ├── mysql/
 │   ├── mysql-local-data-folder-pv.yaml
 │   ├── mysql-service.yaml      # ClusterIP 10.43.0.42:3307 et service headless

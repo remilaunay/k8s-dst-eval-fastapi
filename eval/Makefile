@@ -50,7 +50,7 @@ test-logs: ## Suit les logs du pod FastAPI de test
 remove-test: ## Supprime uniquement le pod de test FastAPI
 	kubectl -n eval delete pod fastapi --ignore-not-found
 
-deploy: mysql push ## Déploie les 3 replicas FastAPI et le service NodePort 30000
+deploy: mysql push ## Déploie les 3 replicas FastAPI et le service NodePort 30002
 	kubectl apply -f fastapi/deployment.yaml
 	kubectl apply -f fastapi/service.yaml
 	kubectl -n eval rollout status deployment/fastapi --timeout=5m
