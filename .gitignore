@@ -3,6 +3,7 @@
 /eval/mysql/mysql-user.env
 /eval/mysql/mysql-local-data-folder-pv.yaml
 /eval/test/fastapi-pod.yaml
+/eval/__pycache__/
 /eval/data/mysql/*
 !/eval/data/mysql/.gitkeep
 /eval/test/app/__pycache__/

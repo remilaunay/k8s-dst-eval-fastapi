@@ -2,6 +2,7 @@ mysql/mysql-root-password.env
 mysql/mysql-user.env
 mysql/mysql-local-data-folder-pv.yaml
 test/fastapi-pod.yaml
+__pycache__/
 data/mysql/*
 !data/mysql/.gitkeep
 test/app/__pycache__/

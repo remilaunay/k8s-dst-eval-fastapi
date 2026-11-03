@@ -71,8 +71,8 @@ verify: namespace render ## Vérifie la syntaxe et les schémas des manifestes K
 	kubectl apply --dry-run=server -f fastapi/deployment.yaml
 	kubectl apply --dry-run=server -f fastapi/service.yaml
 	python3 -m compileall -q test/app/main.py
-	python3 -m py_compile render-manifests.py
+	python3 -c 'from pathlib import Path; compile(Path("render-manifests.py").read_text(), "render-manifests.py", "exec")'
 
 archive: render ## Crée ../eval-submission.tar.gz sans données MySQL ni fichiers de Secrets locaux
 	rm -f ../eval-submission.tar.gz
-	tar --exclude='eval/data/mysql/*' --exclude='eval/mysql/*.env' --exclude='eval/test/app/__pycache__' -czf ../eval-submission.tar.gz -C .. eval
+	tar --exclude='eval/data/mysql/*' --exclude='eval/mysql/*.env' --exclude='eval/__pycache__' --exclude='eval/test/app/__pycache__' -czf ../eval-submission.tar.gz -C .. eval
