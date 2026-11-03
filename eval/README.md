@@ -10,6 +10,10 @@ Ce dossier contient le rendu de l’examen : un StatefulSet MySQL 8.4 avec stock
 
 Les manifestes de stockage et de montage de code utilisent les chemins de cette VM : `/home/ubuntu/eval/eval/data/mysql` et `/home/ubuntu/eval/eval/test/app`. Si le dossier est déplacé, modifie ces deux chemins absolus dans les manifestes correspondants.
 
+## Préparation de la VM
+
+Le cache de paquets UV occupait 3,0 Gio ; il a été vidé avant le déploiement. Pour ne laisser tourner que les workloads nécessaires à l’examen, les Deployments, StatefulSets et ReplicaSets applicatifs des namespaces `airflow`, `datascientest`, `default` et `sales` ont été mis à zéro. Leurs manifestes et PVC sont conservés ; aucun volume de données n’a été supprimé. Les composants système K3s, MySQL et FastAPI restent actifs.
+
 ## Configuration locale
 
 Depuis le dossier `eval` :
@@ -54,9 +58,9 @@ docker login
    make deploy
    ```
 
-   Le Deployment utilise l’image publiée, les variables du Secret `mysql-user` et n’active pas `--reload`. Le service NodePort expose l’application sur le port 30002 du nœud dans cette VM.
+   Le Deployment utilise l’image publiée, les variables du Secret `mysql-user` et n’active pas `--reload`. Le service NodePort expose l’application sur le port 30000 du nœud.
 
-   **Conflit de port rencontré :** le NodePort 30000 est déjà utilisé par le service actif `default/monservicenodeport`. Pour préserver ce service, ce rendu utilise 30002. Si l’évaluateur exige strictement le NodePort 30000, il faudra d’abord libérer ce port dans le cluster puis remettre `nodePort: 30000` dans `fastapi/service.yaml`.
+   **Conflit de port rencontré sur cette VM :** `default/monservicenodeport` utilisait déjà le NodePort 30000. Son NodePort a été déplacé à 32000 pour respecter la consigne ; le service reste défini dans le cluster.
 
 ## Vérification et utilisation
 
@@ -66,14 +70,14 @@ Vérifie les ressources, les logs et la disponibilité de l’API :
 make verify
 kubectl -n eval get all,pvc
 kubectl -n eval logs deployment/fastapi
-curl http://<IP_DU_NOEUD>:30002/health
-curl http://<IP_DU_NOEUD>:30002/tables
+curl http://<IP_DU_NOEUD>:30000/health
+curl http://<IP_DU_NOEUD>:30000/tables
 ```
 
 L’endpoint `PUT /table` crée une table. Exemple :
 
 ```bash
-curl -X PUT http://<IP_DU_NOEUD>:30002/table \
+curl -X PUT http://<IP_DU_NOEUD>:30000/table \
   -H 'Content-Type: application/json' \
   -d '{"table_name":"exam_result","columns":{"id":"Integer","label":"String(100)"}}'
 ```
@@ -95,7 +99,7 @@ eval/
 ├── data/mysql/                 # Répertoire hôte du PV (données non archivées)
 ├── fastapi/
 │   ├── deployment.yaml         # Deployment de 3 replicas
-│   └── service.yaml            # NodePort 30002 sur cette VM (30000 est occupé)
+│   └── service.yaml            # NodePort 30000
 ├── mysql/
 │   ├── mysql-local-data-folder-pv.yaml
 │   ├── mysql-service.yaml      # ClusterIP 10.43.0.42:3307 et service headless
